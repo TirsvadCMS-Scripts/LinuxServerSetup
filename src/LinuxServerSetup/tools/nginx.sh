@@ -65,11 +65,11 @@ nginx_compile(){
             # Nginx is a program written in C, so you will first need to install a compiler tools
             install_package build-essential
             # Install optional Nginx dependencies
-            install_package libpcre3 libpcre3-dev libssl-dev zlib1g-dev
+            install_package libpcre3 libpcre3-dev libssl-dev zlib1g-dev git
             ;;
     esac
+    infoscreen "Building" "NGINX $NGINX_VER"
     [ ! -d /etc/nginx ] && mkdir /etc/nginx
-    install_package git
     cd ~
     git clone https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git --quiet
     curl -s http://nginx.org/download/nginx-$NGINX_VER.tar.gz | tar xfz -
@@ -87,7 +87,7 @@ nginx_compile(){
 
     make -s
     make install
-    infoscreendone
+
     # resolve a error - systemd[1]: nginx.service: Failed to parse PID from file /run/nginx.pid: Invalid argument
     [ ! -d "/etc/systemd/system/nginx.service.d" ] && mkdir /etc/systemd/system/nginx.service.d
     printf "[Service]\nExecStartPost=/bin/sleep 0.1\n" > /etc/systemd/system/nginx.service.d/override.conf
@@ -101,11 +101,13 @@ nginx_compile(){
     [ ! -d "/srv/www/default/hls" ] && sudo -H -u www-data bash -c 'mkdir -p /srv/www/default/hls'
     [ ! -d "/srv/www/default/rec" ] && sudo -H -u www-data bash -c 'mkdir /srv/www/default/rec'
 
+    infoscreendone
+
     cp $DIR_CONF/nginx/nginx.service /lib/systemd/system/
 
     [ "${STUNNEL_INSTALL:-}" == "on" ] && {
-        infoscreen "installing" "ffmpeg"
         install_package stunnel4
+        infoscreen "Configuration" "stunnel4"
         file="/etc/default/stunnel4"
         var1="ENABLE="
         var2="1"
@@ -123,6 +125,10 @@ nginx_compile(){
     rm -R nginx-rtmp-module
     rm -R nginx-$NGINX_VER
 }
+
+# add_domain(){
+
+# }
 
 usage(){
     echo "Usage:"
@@ -187,4 +193,10 @@ case $subcommand in
     compile)
         nginx_compile
         ;;
+    # add_domain)
+    #     [ ${DOMAIN:-} ] && { log_error "missing the argument for --domain"; exit 1 }
+    #     log "addig" "domain $DOMAIN"
+    #     [ ${SSL_EMAIL:-} ] && { log "" ;echo "error"; }
+    #     add_domain
+    #     ;;
 esac

@@ -11,13 +11,15 @@ declare -r DIR_TOOLS="$( cd "$DIR/tools" && pwd )"
 declare -r DIR_CONF="$( cd "$DIR/conf" && pwd )"
 
 [ ! -d "$DIR/log" ] && mkdir "$DIR/log"
-declare -r FILE_LOG="$( cd "$DIR/log" && pwd )/install.log"
+declare -r FILE_LOG="$( cd "$DIR/log" && pwd )/setup.log"
 
 # Put all output to logfile
 exec 3>&1 1>>${FILE_LOG} 2>&1
 
 . $DIR_TOOLS/precheck.sh
 . $DIR_TOOLS/functions.sh
+
+log_headline `basename "$0"`
 
 usage(){
     echo "-u | --url <url>                        Url link to configuration" 1>&3
@@ -37,13 +39,17 @@ while [ $# -gt 0 ]; do
         -i | --interactive )
             NONINTERACTIVE="no"
             ;;
-        --curl-user )
-            CURL_USER=$1
+        --curl-user-password )
             shift
+            CURL_USER_PASSWORD=$1
+            ;;
+        --curl-user )
+            shift
+            CURL_USER=$1
             ;;
         --curl-password )
-            CURL_PASSWORD=$1
             shift
+            CURL_PASSWORD=$1
             ;;
         -u | --url )
             shift
@@ -60,6 +66,8 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+[ NONINTERACTIVE == "yes" ] && export DEBIAN_FRONTEND="noninteractive"
+
 install_package ntpdate
 ntpdate -s time.nist.gov
 
@@ -67,9 +75,16 @@ cd /root/LinuxServerSetup/
 regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 [[ ${URL_SETTINGS:-} =~ $regex ]] && {
     [ ! ${STRIP_COMPONENTS:-} ] && STRIP_COMPONENTS=0
-    log 'Downloading the settings file fram $URL_SETTINGS'
-    [ $CURL_USER && $CURL_PASSWORD ] && curl -L --user $CURL_USER:$CURL_PASSWORD $URL_SETTINGS  | tar xz -C /root/LinuxServerSetup --strip-components $STRIP_COMPONENTS ||
-    curl -L $URL_SETTINGS | tar xz -C /root/LinuxServerSetup --strip-components $STRIP_COMPONENTS
+    log "Downloading the settings file fram $URL_SETTINGS"
+    [ ${CURL_USER_PASSWORD:-} ] && {
+        CURL_USER=${CURL_USER_PASSWORD%:*}
+        CURL_PASSWORD=${CURL_USER_PASSWORD#*:}
+    }
+    [[ ${CURL_USER:-} && ${CURL_PASSWORD:-} ]] && {
+        curl -L --user $CURL_USER:$CURL_PASSWORD $URL_SETTINGS | tar -xz -C /root/LinuxServerSetup --strip-components $STRIP_COMPONENTS
+    } || {
+        curl -L $URL_SETTINGS | tar xz -C /root/LinuxServerSetup --strip-components $STRIP_COMPONENTS
+    }
 } || {
     [ ! -f $DIR_CONF/settings.sh ] && {
         log 'Downloading the default settings file from https://github.com/TirsvadCMS-Bashscripts/LinuxServerSetupDefaultConfig/tarball/master'

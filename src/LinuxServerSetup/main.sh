@@ -1,24 +1,22 @@
 #!/bin/bash
 set -euo pipefail
 IFS=$'\t'
-NONINTERACTIVE="yes"
-export DEBIAN_FRONTEND="noninteractive"
 
 # Setting some path
 declare -r DIR="$( cd "$( dirname "$0" )" && pwd )"
 declare -r DIR_TOOLS="$( cd "$DIR/tools" && pwd )"
 declare -r DIR_CONF="$( cd "$DIR/conf" && pwd )"
-declare -r FILE_LOG="$( cd "$DIR/log" && pwd )/install.log"
+declare -r FILE_LOG="$( cd "$DIR/log" && pwd )/main.log"
 
 # Put all output to logfile
 exec 3>&1 1>>${FILE_LOG} 2>&1
-
-[ ! -f "$DIR_CONF/settings.sh" ] && cp "$DIR_CONF/settings.sh.default" "$DIR_CONF/settings.sh"
 
 . $DIR_CONF/applicationVersions.sh
 . $DIR_CONF/settings.sh
 . $DIR_TOOLS/precheck.sh
 . $DIR_TOOLS/functions.sh
+
+log_headline `basename "$0"`
 
 while true
 do {
@@ -27,8 +25,6 @@ do {
     sleep 5
 }
 done
-
-log "$( date +%T ) script was started"
 
 [ ! $( which sudo ) ] && install_package sudo
 
@@ -73,7 +69,7 @@ infoscreen "Setting" "public ipv6"
 #     }
 # }
 
-[ ! "${SSHD_PERMITROOTLOGIN:-}" == "yes" ] && {
+[[ ! ${SSHD_PERMITROOTLOGIN:-} == "yes" ]] && {
     [ ! -z "${USER_ID:-}" ] && [ ! -z "${USER_PASSWORD:-}" ] || { echo "User credential not set in config file"; exit 1; }
     [ ! "${SSHD_PASSWORDAUTH:-}" == "yes" ] && {
         [ ! "$SSHD_PASSWORDAUTH" == "yes" ] && [ -z "${USER_SSHKEY:-}" ] && [ ! -f $DIR_CONF/.ssh/keys ] && { echo -e "Global varible USER_SSHKEY not set in config file and there is no sshkey file.\nBut required as no password is acceptet for login"; exit 1; }
@@ -87,6 +83,16 @@ infoscreen "Setting" "public ipv6"
         infoscreendone
     } || infoscreenfailed
 }
+
+###################################################################################
+# Check configuration
+###################################################################################
+[[ ( ${NGINX_INSTALL:-} == "on" && ${NGINX_COMPILE:-} == "on" ) ]] && {
+    infoscreenfailed "Your settings.sh file have configuration error\nNGINX_INSTALL and NGINX_COMPILE can't both be set to 'on'"
+    CHECK_ERROR=1
+}
+
+[ ${CHECK_ERROR:-} ] && exit 1
 
 ###################################################################################
 # Servername
@@ -103,9 +109,9 @@ infoscreen "Setting" "public ipv6"
 ###################################################################################
 # Creating a priviliged user
 ###################################################################################
-[ ! -z ${USER_ID:-} ] && {
+[ ${USER_ID:-} ] && {
     infoscreen "Adding" "priviliged user ${USER_ID}"
-    [ ! $( id -u "${USER_ID}" ) ] && useradd -create-home -s "$USER_SHELL" $( lower "$USER_ID" -p "$USER_PASSWORD" )
+    [ ! $( id -u "${USER_ID}" ) ] && useradd --create-home -s "$USER_SHELL" $( lower "$USER_ID" -p "$USER_PASSWORD" )
     case $OS in
     "Debian GNU/Linux")
         adduser "$USER_ID" sudo
@@ -117,7 +123,7 @@ infoscreen "Setting" "public ipv6"
         usermod -aG wheel "$USER_ID"
         ;;
     esac
-    USER_HOME=`system_get_user_home "$USER_ID"`
+    USER_HOME=$(system_get_user_home $USER_ID)
     [ ! -d "$USER_HOME/.ssh" ] && sudo -u "$USER_ID" mkdir "$USER_HOME/.ssh"
     [ -f $DIR_CONF/.ssh/keys ] && {
         cp -f $DIR_CONF/.ssh/keys $USER_HOME/.ssh/authorized_keys
@@ -131,7 +137,7 @@ infoscreen "Setting" "public ipv6"
     }
     infoscreendone
 
-    [ ! "$SSHD_PASSWORDAUTH" == "yes" ] && [ ! -f "$USER_HOME/.ssh/authorized_keys" ] && {
+    [[ ! $SSHD_PASSWORDAUTH == "yes" ]] && [ ! -f "$USER_HOME/.ssh/authorized_keys" ] && {
         dialog --title "copy client " \
             --colors \
             --msgbox \
@@ -176,26 +182,27 @@ infoscreendone
 ###################################################################################
 # Nginx
 ###################################################################################
-[[ ! ("${NGINX_INSTALL:-}" == "on" && "${NGINX_COMPILE:-}" == "on" ) ]] && {
+[[ ${NGINX_COMPILE:-} == "on" ]] && {
 
+    $DIR_TOOLS/nginx.sh compile --nginx-ver $NGINX_VER
+    install_package stunnel4
+    [ -f $DIR_CONF/stunnel4/stunnel.conf ] && cp -f $DIR_CONF/stunnel4/stunnel.conf /etc/stunnel/
+
+    [[ ( -f /srv/www/default/html/live.html  &&  ! -z "${PUBLIC_IPV4:-}" ) ]] && sed -i "s@HOSTNAME_OR_IP@$PUBLIC_IPV4@g" /srv/www/default/html/live.html
+    iptables -A INPUT -p tcp --dport 1935 -m state --state NEW,ESTABLISHED -j ACCEPT # rtmp for live broadcasting
+    cat $DIR_CONF/nginx/rtmp.conf >> /etc/nginx/nginx.conf
+}
+
+[[ ${NGINX_INSTALL:-} == "on" ]] && {
+    $DIR_TOOLS/nginx.sh install
+    [ -f /srv/www/default/html/live.html ] && rm /srv/www/default/html/live.html
+}
+
+[[ ${NGINX_COMPILE:-} == "on" || ${NGINX_INSTALL:-} == "on" ]] && {
     [ ! $(id -u www-data) ] && useradd www-data --user-group -s /sbin/nologin
 
-    [ "${NGINX_INSTALL:-}" == "on" ] && {
-        infoscreen "installing" "nginx"
-        $DIR_TOOLS/nginx.sh install
-        infoscreendone
-    }
-
-    [ "${NGINX_COMPILE:-}" == "on" ] && {
-        infoscreen "building" "nginx $NGINX_VER"
-        $DIR_TOOLS/nginx.sh compile --nginx-ver $NGINX_VER
-        infoscreendone
-        install_package stunnel4
-        [ -f $DIR_CONF/stunnel4/stunnel.conf ] && cp -f $DIR_CONF/stunnel4/stunnel.conf /etc/stunnel/
-    }
-
     [ -f $DIR_CONF/nginx/nginx.conf ] && cp $DIR_CONF/nginx/nginx.conf /etc/nginx/
-    [ -d $DIR_CONF/nginx/sites-available ] && cp $DIR_CONF/nginx/sites-available/* /etc/nginx/sites-available/
+    [ -d $DIR_CONF/nginx/sites-available ] && cp -r $DIR_CONF/nginx/sites-available /etc/nginx/
 
     find /etc/nginx/sites-available -type f -print0 | while IFS= read -r -d $'\0' file; do ln -s $file /etc/nginx/sites-enabled/ ; done
 
@@ -214,33 +221,25 @@ infoscreendone
     ip6tables -A INPUT -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
     ip6tables -A INPUT -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
 
-    [ "${NGINX_COMPILE:-}" == "on" ] && {
-        [[ ( -f /srv/www/default/html/live.html  &&  ! -z "${PUBLIC_IPV4:-}" ) ]] && sed -i "s@HOSTNAME_OR_IP@$PUBLIC_IPV4@g" /srv/www/default/html/live.html
-        iptables -A INPUT -p tcp --dport 1935 -m state --state NEW,ESTABLISHED -j ACCEPT # rtmp for live broadcasting
-        cat $DIR_CONF/nginx/rtmp.conf >> /etc/nginx/nginx.conf
-    } || {
-        [ -f /srv/www/default/html/live.html ] && rm /srv/www/default/html/live.html
-    }
-
     systemctl daemon-reload
     systemctl restart nginx
     systemctl enable nginx
 
-} || echo "Your settings.sh file have configuration error\nNGINX_INSTALL and NGINX_COMPILE can't both be set to 'on'"
+}
 
 ###################################################################################
 # LetsEncrypt
 ###################################################################################
-[ "${LETSENCRYPT_INSTALL:-}" == "on" ] && {
+[[ ${LETSENCRYPT_INSTALL:-} == "on" ]] && {
     regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
-    [[ ! ${LETSENCRYPT_EMAIL}=~$regex ]] && {
+    [[ ! ${LETSENCRYPT_EMAIL} =~ $regex ]] && {
         log "LETSENCRYPT_EMAIL value is not a valid email adress"
     } || {
-        [ "${NGINX_INSTALL:-}" == "on" ] && install_package python-certbot-nginx
-        [ ! -Z "${NGINX_SITES_HOSTNAMES:-}"] && {
+        [[ ${NGINX_INSTALL:-} == "on" ]] && install_package python-certbot-nginx
+        [ ! -Z ${NGINX_SITES_HOSTNAMES:-} ] && {
             for HOSTNAME in "${NGINX_SITES_HOSTNAMES[@]}"
             do
-                $DIR_TOOLS/nginx.sh add --domain $HOSTNAME --email $LETSENCRYPT_EMAIL
+                # $DIR_TOOLS/nginx.sh add --domain $HOSTNAME --email $LETSENCRYPT_EMAIL
                 log "ssl certificate for $HOSTNAME"
             done
         }
@@ -250,14 +249,14 @@ infoscreendone
 ###################################################################################
 # Database
 ###################################################################################
-[ "${POSTGRESQL_INSTALL:-}" == "yes" ] && {
+[[ ${POSTGRESQL_INSTALL:-} == "yes" ]] && {
     install_package progresql postgresql-contrib
 }
 
 ###################################################################################
 # Bash stuff
 ###################################################################################
-[ "${BASH_STUFF:-}" == "on" ] && {
+[[ ${BASH_STUFF:-} == "on" ]] && {
     infoscreen "Setting" "bash stuff for root - $OS version $OS_VER"
     case $OS in
     'Debian GNU/Linux'|'Ubuntu')
@@ -269,13 +268,15 @@ infoscreendone
     infoscreendone
 }
 
-[ ! "${NONINTERACTIVE:-}" == "yes" ] && {
-    count_down 9
-}
-
 ###################################################################################
 # Extra scripts
 ###################################################################################
-[ -f $DIR_CONF/autorun.sh ] && bash $DIR_CONF/autorun.sh
+[ -f $DIR_CONF/autorun.sh ] && . $DIR_CONF/autorun.sh
+
+log_headline 'script finish at'
+
+[[ ! ${NONINTERACTIVE:-} == "yes" ]] && {
+    count_down 9
+}
 
 reboot

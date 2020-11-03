@@ -10,10 +10,11 @@ BROWN='\033[0;33m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 WHITE='\033[0;37m'
+FILLING=" : ............................................................................."
 
 infoscreen() {
-	printf "%-.80s" $(printf "${BROWN}$1 ${BLUE}${2-:} : .................................................................................${NC}") 1>&3
-    log $1 ${2-:}
+	printf "%-.80b" "${BROWN}$1 ${BLUE}${2:-}${FILLING}" 1>&3
+    log "$1" ${2:-}
 }
 
 infoscreendone() {
@@ -29,19 +30,29 @@ infoscreenfailed() {
         printf " ${RED}FAILED${NC}\n" 1>&3
         log_error "FAILED"
     } || {
-        printf " ${RED}${1-:}${NC}\n" 1>&3
+        printf " ${RED}${1:-}${NC}\n" 1>&3
         log_error ${1}
     }
 }
 
-_scriptname=$0
-_scriptname=$( basename $_scriptname )
-_scriptname=${_scriptname%.*}
-FILE_LOGGER="$( cd "$DIR/log" && pwd )/$_scriptname.log"
+[ ! ${FILE_LOGGER_NAME:-} ] && FILE_LOGGER_NAME=install
+FILE_LOGGER="$( cd "$DIR/log" && pwd )/$FILE_LOGGER_NAME.log"
 touch $FILE_LOGGER
 
 log(){
-    [ ${2+x} ] && printf "%-.80s" $(printf "${BROWN}$1 ${BLUE}${2} : .................................................................................${NC}") >> $FILE_LOGGER || printf "${YELLOW}${1}${NC}\n" >> $FILE_LOGGER
+    [ ${2:-} ] && {
+        printf "%-.80b" "${BROWN}$1 ${BLUE}${2:-}${FILLING}" >> $FILE_LOGGER
+    } || {
+        printf "${NC}${1}${NC}\n" >> $FILE_LOGGER
+    }
+}
+
+log_headline(){
+    var=$(date +"%T %d-%m-%Y")
+    printf "${BLUE}**${NC}\n" >> $FILE_LOGGER
+    printf "${BLUE}* ${1:-} ${var}${NC}\n" >> $FILE_LOGGER
+    printf "${BLUE}**${NC}\n" >> $FILE_LOGGER
+    unset var
 }
 
 log_succes(){
@@ -111,12 +122,24 @@ count_down() {
 install_package() {
     case $PACKAGE_HANDLER in
     "apt" )
-        infoscreen "Installing" "$@"
-        [[ $# -gt 0 ]] && apt-get -qq install "$@"
-        [[ $? -eq 0 ]] && infoscreendone || infoscreenfailed
+        [[ $# -gt 0 ]] && {
+            for var in $@
+            do
+                infoscreen "installing" "$var"
+                DEBIAN_FRONTEND=noninteractive apt-get -qq install $var
+                [[ $? -eq 0 ]] && infoscreendone || infoscreenfailed
+            done
+        }
         ;;
     "dnf" )
-        [[ $# -gt 0 ]] && dnf -y -q install "$@"
+        [[ $# -gt 0 ]] && {
+            for var in $@
+            do
+                infoscreen "installing" "$var"
+                dnf -y -q install $var
+                [[ $? -eq 0 ]] && infoscreendone || infoscreenfailed
+            done
+        }
         ;;
     * )
         exit 1;
