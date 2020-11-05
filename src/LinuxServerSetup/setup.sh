@@ -75,7 +75,7 @@ cd /root/LinuxServerSetup/
 regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 [[ ${URL_SETTINGS:-} =~ $regex ]] && {
     [ ! ${STRIP_COMPONENTS:-} ] && STRIP_COMPONENTS=0
-    log "Downloading the settings file fram $URL_SETTINGS"
+    log "Downloading the settings file from $URL_SETTINGS"
     [ ${CURL_USER_PASSWORD:-} ] && {
         CURL_USER=${CURL_USER_PASSWORD%:*}
         CURL_PASSWORD=${CURL_USER_PASSWORD#*:}

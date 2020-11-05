@@ -249,8 +249,8 @@ infoscreendone
 ###################################################################################
 # Database
 ###################################################################################
-[[ ${POSTGRESQL_INSTALL:-} == "yes" ]] && {
-    install_package progresql postgresql-contrib
+[[ ${POSTGRESQL_INSTALL:-} == "on" ]] && {
+    install_package postgresql postgresql-contrib
 }
 
 ###################################################################################

@@ -14,12 +14,12 @@ Some common settings
 
 Default server setup:
 
-    curl -L https://github.com/TirsvadCMS-Bashscripts/LinuxServerSetup/tarball/master | tar xz -C /root/ --strip-components 2
+    curl -L https://api.github.com/repos/TirsvadCms-Scripts/LinuxServerSetup/tarball | tar xz -C /root/ --strip-components 2
     cd LinuxServerSetup && ./setup
 
 Manuel server setup:
 
-    curl -L https://github.com/TirsvadCMS-Bashscripts/LinuxServerSetup/tarball/master | tar xz -C /root/ --strip-components 2
+    curl -L https://api.github.com/repos/TirsvadCms-Scripts/LinuxServerSetup/tarball | tar xz -C /root/ --strip-components 2
     cd LinuxServerSetup
 
 change settings.sh file as needed. If not, you will get a default server.
@@ -29,7 +29,7 @@ change settings.sh file as needed. If not, you will get a default server.
 
 Example of adding settings file to script
 
-    curl -L https://github.com/TirsvadCMS-Bashscripts/LinuxServerSetup/tarball/master | tar xz -C /root/ --strip-components 2
+    curl -L https://api.github.com/repos/TirsvadCMS-Scripts/LinuxServerSetup/tarball | tar zx -C /root/ --strip-components 2
     cd LinuxServerSetup
     URL=https://github.com/TirsvadCMS-Bashscripts/LinuxServerSetupDefaultConfig/tarball/master
     ./setup.sh --url $URL --strip-components 2
