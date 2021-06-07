@@ -30,7 +30,7 @@ setup(
     install_requires=[
         'virtualenv',
         'PyYAML',
-        'package-manager-TirsvadCLI>=0.1.11'
+        'package-manager-TirsvadCLI>=0.1.12'
     ],
     extras_require = {
         'test': [
