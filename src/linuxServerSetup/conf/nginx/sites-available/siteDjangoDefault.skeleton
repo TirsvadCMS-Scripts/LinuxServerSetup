@@ -1,0 +1,31 @@
+server {
+    listen 80;
+    server_name __virtualhost__;
+    charset utf-8;
+
+    client_max_body_size 128M;
+
+#__ssl__#
+
+    location /static {
+        # exact path to where your static files are located on server
+        # [mostly you won't need this, as you will be using some storage service for same]
+        alias /srv/__main_folder__/webapps/__virtualhost__/__project_name__/__project_name__/static;
+    }
+
+    location /media {
+        alias /srv/__main_folder__/webapps/__virtualhost__/__project_name__/__project_name__/static/media;
+    }
+
+    location / {
+        include         uwsgi_params;
+        uwsgi_pass      unix:/run/uwsgi/app/__virtualhost__/__project_name__.sock;
+    }
+
+    # Necessary for Let's Encrypt Domain Name ownership validation
+    location ^~ /.well-known/ {
+        default_type "text/plain";
+        allow all;
+        root /var/www/html;
+    }
+}

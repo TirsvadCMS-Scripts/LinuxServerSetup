@@ -1,0 +1,14 @@
+os: [
+  debian: [
+    version: [
+      10,
+      9
+    ]
+  ],
+  # ubuntu: {
+  #   version: [
+  #     10,
+  #     9
+  #   ]
+  # },
+]

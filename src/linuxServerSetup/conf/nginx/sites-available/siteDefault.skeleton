@@ -1,0 +1,20 @@
+server {
+    listen 80;
+    server_name __virtualhost__;
+    charset utf-8;
+
+    client_max_body_size 128M;
+
+#__ssl__#
+
+    location / {
+        root /srv/__main_folder__/www/__virtualhost__;
+    }
+
+    # Necessary for Let's Encrypt Domain Name ownership validation
+    location ^~ /.well-known/ {
+        default_type "text/plain";
+        allow all;
+        root /var/www/html;
+    }
+}

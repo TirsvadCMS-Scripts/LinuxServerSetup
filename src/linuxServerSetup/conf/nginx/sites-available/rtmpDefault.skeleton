@@ -1,0 +1,18 @@
+# RTMP configuration
+rtmp {
+    server {
+        listen 1935; # Listen on standard RTMP port
+        chunk_size 4000;
+
+        application show {
+            live on;
+            # Turn on HLS
+            hls on;
+            hls_path __hlsPath__;
+            hls_fragment 3;
+            hls_playlist_length 60;
+            # disable consuming the stream from nginx as rtmp
+            deny play all;
+        }
+    }
+}

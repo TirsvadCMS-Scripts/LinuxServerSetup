@@ -1,0 +1,9 @@
+---
+- "postconf -M submission/inet=\"submission   inet   n   -   y   -   -   smtpd\""
+- "postconf -P \"submission/inet/smtpd_tls_security_level=encrypt\""
+- "postconf -P \"submission/inet/content_filter=\""
+- "postconf -M amavis/unix=\"amavis   unix   -   -   n   -   2   smtp\""
+- "postconf -P \"amavis/unix/mtp_send_xforward_command=yes\""
+- "postconf -P \"amavis/unix/smtp_tls_security_level=none\""
+- "postconf -M 127.0.0.1:10025/inet=\"127.0.0.1:10025   inet   n   -   n   -   -   smtpd\""
+- "postconf -P \"127.0.0.1:10025/inet/content_filter=\""

@@ -1,0 +1,8 @@
+#/etc/postfix/pgsql-aliases.cf
+
+user=postfix
+dbname=postifx
+table=aliases
+select_field=alias
+where_field=email
+hosts=unix:/var/run/postgresql/

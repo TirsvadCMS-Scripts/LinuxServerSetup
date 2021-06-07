@@ -1,0 +1,8 @@
+#/etc/postfix/pgsql-boxes.cf
+
+user=postfix
+dbname=postfix
+table=users
+select_field=email
+where_field=email
+hosts=unix:/var/run/postgresql/

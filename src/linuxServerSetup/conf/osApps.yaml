@@ -1,0 +1,67 @@
+---
+debian:
+  '10':
+    default:
+      install:
+        - sudo
+        - openssh-client
+        - nftables
+      uninstall:
+        - iptables
+    certbot:
+      install:
+        - certbot
+    postgresql:
+      install:
+        - postgresql
+    psycopg2dep:
+      install:
+        - python3-dev
+        - postgresql-server-dev-all
+        - build-essential
+    mailServer:
+      install:
+        - amavisd-new
+        - certbot
+        - dovecot-core
+        - dovecot-imapd
+        - dovecot-lmtpd
+        - dovecot-sieve
+        - dovecot-pgsql
+        - mailutils
+        - opendkim
+        - opendkim-tools
+        - p7zip
+        - postfix
+        - postfix-pgsql
+        - postgrey
+        - spamassassin
+    nginx:
+      compile:
+        '1.20.0':
+          install:
+            - build-essential
+            - git
+            - libpcre3
+            - libpcre3-dev
+            - libssl-dev
+            - zlib1g-dev
+          cmd:
+            - git clone https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git
+            - curl -s http://nginx.org/download/nginx-1.20.0.tar.gz | tar xfz -
+          compileCmd:
+            1: >
+              ./configure
+              --user=www-data
+              --add-module=../nginx-rtmp-module
+              --with-http_ssl_module
+              --with-http_v2_module
+              --with-file-aio
+              --conf-path=/etc/nginx/nginx.conf
+              --sbin-path=/usr/local/sbin/nginx
+              --pid-path=/run/nginx.pid
+              --error-log-path=/var/log/nginx/error.log
+              --with-threads
+              --http-log-path=/var/log/nginx/access.log
+            2: make -s
+            3: make install

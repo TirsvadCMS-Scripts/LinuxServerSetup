@@ -1,0 +1,5 @@
+user = postfix
+password = postfix
+hosts = 127.0.0.1
+dbname = postfix
+query = SELECT email FROM users WHERE email='%s'
