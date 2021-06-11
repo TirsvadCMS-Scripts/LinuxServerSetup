@@ -585,7 +585,7 @@ class serverSetup(object):
         return_code = result.returncode
         if return_code:
             self._logger.error('Certbot failed')
-            self._logger.error(return_code + ' ' + text)
+            self._logger.error(str(return_code) + ' ' + text)
             return False
         return True
 
