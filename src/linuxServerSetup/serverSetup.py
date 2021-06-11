@@ -402,6 +402,7 @@ class serverSetup(object):
                 path_webhost_gid = grp.getgrnam(self._path_webhost_root_group if not 'group' in webhost else webhost['group']).gr_gid
                 os.chown(path_webhost, uid=path_webhost_uid, gid=path_webhost_gid)
                 for virtualhost in webhost['virtualhosts']:
+                    appsname = 'website'
                     if 'virtualhost' in virtualhost:
                         self._etcAddLineToHosts(virtualhost['virtualhost'])
                         self._logger.info('virtualhost adding - ' + virtualhost['virtualhost'])
@@ -466,7 +467,6 @@ class serverSetup(object):
                             elif 'name' in framework and framework['name'] == 'mailpile':
                                 self._cfgMailpile()
                         else: # non framework
-                            if not appsname: appsname = 'website'
                             self._cfgWebhostSites(virtualhost=virtualhost['virtualhost'], webhost=webhost['name'], appsname=appsname)
                         if self._certbotGetCertificate(fqdn=virtualhost['virtualhost'], email=self._cfg['letsencrypt']['email']):
                             self._cfgWebhostSitesSsl(virtualhost=virtualhost['virtualhost'])
