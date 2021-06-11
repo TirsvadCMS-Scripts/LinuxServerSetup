@@ -580,12 +580,10 @@ class serverSetup(object):
     def _certbotGetCertificate(self, fqdn:str, email: str = '', alias: list = []):
         if not email: email='postmaster@' + fqdn
         if alias: fqdn += ' -d ' + ' -d '.join(alias)
-        result = runBash('certbot certonly --non-interactive --agree-tos -m ' + email + ' --no-eff-email --rsa-key-size 4096 --webroot -w /var/www/html -d ' + fqdn)
-        text = result.communicate()[0]
-        return_code = result.returncode
-        if return_code:
-            self._logger.error('Certbot failed')
-            self._logger.error(str(return_code) + ' ' + text)
+        p = runBash('certbot certonly --non-interactive --agree-tos -m ' + email + ' --no-eff-email --rsa-key-size 4096 --webroot -w /var/www/html -d ' + fqdn)
+        output = p.communicate()[0]
+        if p.returncode != 0:
+            self._logger.error("Certbot failed %d %s" % (p.returncode, output))
             return False
         return True
 
