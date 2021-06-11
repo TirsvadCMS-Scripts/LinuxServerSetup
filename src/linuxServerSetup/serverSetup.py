@@ -466,6 +466,7 @@ class serverSetup(object):
                             elif 'name' in framework and framework['name'] == 'mailpile':
                                 self._cfgMailpile()
                         else: # non framework
+                            if not appsname: appsname = 'website'
                             self._cfgWebhostSites(virtualhost=virtualhost['virtualhost'], webhost=webhost['name'], appsname=appsname)
                         if self._certbotGetCertificate(fqdn=virtualhost['virtualhost'], email=self._cfg['letsencrypt']['email']):
                             self._cfgWebhostSitesSsl(virtualhost=virtualhost['virtualhost'])

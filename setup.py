@@ -8,7 +8,7 @@ with open(path.join(root_dir, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name="LinuxServerSetup-TirsvadCLI",
-    version="0.2",
+    version="0.3",
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/orgs/Tirsvad-CLI-Tools/",
@@ -30,7 +30,7 @@ setup(
     install_requires=[
         'virtualenv',
         'PyYAML',
-        'package-manager-TirsvadCLI>=0.1.12'
+        'package-manager-TirsvadCLI>=0.1.11'
     ],
     extras_require = {
         'test': [
